@@ -1,4 +1,4 @@
-# 陪伴型聊天机器人
+# 陪伴型聊天机器人 V0
 
 *Automatically synced with your [v0.app](https://v0.app) deployments*
 
