@@ -1,8 +1,11 @@
+import { getCharacterById, getDefaultCharacter, CHARACTER_STORAGE_KEY } from "@/lib/characters"
+
 export async function POST(request: Request) {
   try {
-    const { text } = await request.json()
+    const { text, characterId } = await request.json()
 
     console.log("[v0] TTS API: Received request for text:", text?.substring(0, 50))
+    console.log("[v0] TTS API: Character ID:", characterId)
 
     if (!text) {
       return new Response("Text is required", { status: 400 })
@@ -20,6 +23,10 @@ export async function POST(request: Request) {
       )
     }
 
+    // 获取角色配置，如果没有提供characterId则使用默认角色
+    const character = characterId ? getCharacterById(characterId) : getDefaultCharacter()
+    console.log("[v0] TTS API: Using character:", character.name, "voice:", character.voice)
+
     const cleanedText = text.replace(/\n+/g, "，").replace(/\s+/g, " ").trim()
     console.log("[v0] TTS API: Cleaned text:", cleanedText.substring(0, 50))
 
@@ -32,7 +39,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: "fnlp/MOSS-TTSD-v0.5",
         input: cleanedText,
-        voice: "fnlp/MOSS-TTSD-v0.5:benjamin",
+        voice: character.voice,
         response_format: "mp3",
         sample_rate: 32000,
         speed: 1,

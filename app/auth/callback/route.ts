@@ -7,8 +7,21 @@ export async function GET(request: Request) {
   const origin = requestUrl.origin
 
   if (code) {
-    const supabase = await createClient()
-    await supabase.auth.exchangeCodeForSession(code)
+    try {
+      const supabase = await createClient()
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (error) {
+        console.error('[v0] 登录回调错误:', error)
+        // 即使出错也重定向，让前端处理
+        return NextResponse.redirect(`${origin}/?error=auth_failed`)
+      }
+      
+      console.log('[v0] 登录回调成功，session 已建立')
+    } catch (error) {
+      console.error('[v0] 登录回调异常:', error)
+      return NextResponse.redirect(`${origin}/?error=auth_exception`)
+    }
   }
 
   // URL to redirect to after sign in process completes

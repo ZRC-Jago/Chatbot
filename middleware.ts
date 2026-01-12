@@ -37,11 +37,24 @@ export async function middleware(request: NextRequest) {
   )
 
   // 刷新用户会话（如果已过期）
+  // 使用 getSession 而不是 getUser，因为 getSession 不会在没有 session 时抛出错误
   try {
-    await supabase.auth.getUser()
-  } catch (error) {
-    // 如果认证失败，继续执行，不中断请求
-    console.error('Supabase auth error in middleware:', error)
+    const { data: { session }, error } = await supabase.auth.getSession()
+    if (error) {
+      // 静默处理错误，不记录到控制台（避免 AuthSessionMissingError 污染日志）
+      // 这是正常情况，用户可能未登录
+    }
+    // 如果有 session，尝试刷新（这会自动处理过期 session）
+    if (session) {
+      await supabase.auth.getUser()
+    }
+  } catch (error: any) {
+    // 静默处理所有错误，不记录到控制台
+    // AuthSessionMissingError 是正常情况，不应该显示为错误
+    if (error?.message && !error.message.includes('session missing') && !error.message.includes('Auth session missing')) {
+      // 只记录非 session 缺失的错误
+      console.error('Supabase auth error in middleware:', error)
+    }
   }
 
   return supabaseResponse
