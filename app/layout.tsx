@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'AI聊天机器人',
-  description: '阿城致力于提供情感陪伴，为你提供一个温暖、安全、无压力且充满同理心的情感支持空间。',
+  title: '智能对话平台',
+  description: '智能对话平台致力于提供情感陪伴，为你提供一个温暖、安全、无压力且充满同理心的情感支持空间。',
   generator: 'v0.app',
   icons: {
     icon: [

@@ -1,5 +1,6 @@
 import { getSystemPrompt } from "@/lib/system-prompt"
 import { getCharacterById, CHARACTERS } from "@/lib/characters"
+import { CHAT_MODEL } from "@/lib/models"
 
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY
 
@@ -181,7 +182,7 @@ export async function POST(req: Request) {
                 Authorization: `Bearer ${SILICONFLOW_API_KEY}`,
               },
               body: JSON.stringify({
-                model: "deepseek-ai/DeepSeek-V3.2-Exp",
+                model: CHAT_MODEL,
                 messages: formattedMessages,
                 stream: true,
                 max_tokens: 2048,

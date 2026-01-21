@@ -2,6 +2,49 @@ import { Character } from "./characters"
 
 // 根据角色生成系统提示词
 export function getSystemPrompt(character: Character): string {
+  // 如果自定义智能体有自定义系统提示词，直接使用
+  if (character.isCustom && character.systemPrompt) {
+    // 分析系统提示词，智能推荐工具使用场景
+    const promptLower = character.systemPrompt.toLowerCase()
+    const availableTools: string[] = []
+    
+    // 根据关键词判断可能需要哪些工具
+    if (promptLower.includes('健康') || promptLower.includes('bmi') || promptLower.includes('体重') || 
+        promptLower.includes('身高') || promptLower.includes('减肥') || promptLower.includes('健身')) {
+      availableTools.push('calculate_bmi（BMI计算）', 'estimate_daily_calories（卡路里估算）')
+    }
+    if (promptLower.includes('时间') || promptLower.includes('现在') || promptLower.includes('几点')) {
+      availableTools.push('get_current_time（时间查询）')
+    }
+    // 如果没有明确匹配，默认所有工具都可用
+    if (availableTools.length === 0) {
+      availableTools.push('get_current_time（时间查询）', 'calculate_bmi（BMI计算）', 'estimate_daily_calories（卡路里估算）')
+    }
+    
+    const toolsHint = availableTools.length > 0 
+      ? `\n\n**可用工具：**\n你可以使用以下工具来提供更准确的服务：${availableTools.join('、')}。当用户的问题需要计算或查询时，请主动使用相应的工具。`
+      : ''
+    
+    return `${character.systemPrompt}${toolsHint}
+
+**工具使用规范：**
+- **严禁输出工具调用语法**：不要在正文里输出任何“函数调用/工具调用”的标记或代码（例如 "<DSML...>"、"function_calls"、"invoke"、JSON工具参数等）。工具会由系统自动执行；你的正文只需要给用户自然语言答案与来源链接。
+- **翻译工具**：直接提供翻译结果，不需要说明"我使用了翻译工具"。自然地给出翻译，就像你本来就懂这门语言一样。
+- **联网搜索（按需检索再汇总）**：
+  - **什么时候必须检索**：用户的问题需要“外部事实/引用/权威依据/实时信息/具体数据/版本与政策/出处链接”，或你对关键结论不确定时。
+  - **什么时候不需要检索**：纯主观建议/创意写作/情绪陪伴/仅基于用户已给信息即可计算的问题（优先用本地工具如 BMI/TDEE/单位换算/计算）。
+  - **做法**：先用 "web_search" 找到高质量结果；如需要更可靠的细节，再用 "fetch_url" 抓取原文关键段落；最后把信息**综合成结论**，并在末尾提供“来源”列表。
+  - **来源链接格式要求**：必须使用 Markdown 列表格式，每个链接单独一行。格式示例：
+    格式1（编号列表）："## 来源"换行后，每行一个 "1. **标题**：[链接文本](链接URL)"，每个链接独占一行。
+    格式2（普通列表）："## 来源"换行后，每行一个 "- **标题**：[链接文本](链接URL)"，每个链接独占一行。
+    严禁把多个链接写在同一行，每个链接必须独占一行。回答中不需要说"我在用工具"。
+- **其他工具**（如BMI计算、卡路里估算、时间查询等）：可以适当说明工具的使用，展示工具返回的数据，然后用自己的话解释结果。
+
+当前时间：${new Date().toLocaleString("zh-CN")}
+`
+  }
+  
+  // 否则使用原有的基于personality的提示词
   const personalityPrompts: Record<string, string> = {
     "温暖": `
 你是一位名为"${character.name}"的AI同理心倾听者。
@@ -73,9 +116,23 @@ export function getSystemPrompt(character: Character): string {
 `,
   }
 
-  const basePrompt = personalityPrompts[character.personality] || personalityPrompts["温暖"]
+  const personality = character.personality || "温暖"
+  const basePrompt = personalityPrompts[personality] || personalityPrompts["温暖"]
   
   return `${basePrompt}
+
+**重要提示 - 工具使用规范：**
+- **严禁输出工具调用语法**：不要在正文里输出任何“函数调用/工具调用”的标记或代码（例如 "<DSML...>"、"function_calls"、"invoke"、JSON工具参数等）。工具会由系统自动执行；你的正文只需要给用户自然语言答案与来源链接。
+- **翻译工具**：直接提供翻译结果，不需要说明"我使用了翻译工具"。自然地给出翻译，就像你本来就懂这门语言一样。
+- **联网搜索（按需检索再汇总）**：
+  - **什么时候必须检索**：用户的问题需要“外部事实/引用/权威依据/实时信息/具体数据/版本与政策/出处链接”，或你对关键结论不确定时。
+  - **什么时候不需要检索**：纯主观建议/创意写作/情绪陪伴/仅基于用户已给信息即可计算的问题（优先用本地工具如 BMI/TDEE/单位换算/计算）。
+  - **做法**：先用 "web_search" 找到高质量结果；如需要更可靠的细节，再用 "fetch_url" 抓取原文关键段落；最后把信息**综合成结论**，并在末尾提供“来源”列表。
+  - **来源链接格式要求**：必须使用 Markdown 列表格式，每个链接单独一行。格式示例：
+    格式1（编号列表）："## 来源"换行后，每行一个 "1. **标题**：[链接文本](链接URL)"，每个链接独占一行。
+    格式2（普通列表）："## 来源"换行后，每行一个 "- **标题**：[链接文本](链接URL)"，每个链接独占一行。
+    严禁把多个链接写在同一行，每个链接必须独占一行。回答中不需要说"我在用工具"。
+- **其他工具**（如计算BMI、估算卡路里、查询时间等）：可以适当说明工具的使用，展示工具返回的数据，然后用自己的话解释结果。
 
 当前时间：${new Date().toLocaleString("zh-CN")}
 `
